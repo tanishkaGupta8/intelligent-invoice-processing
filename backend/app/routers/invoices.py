@@ -1,0 +1,236 @@
+from datetime import datetime, date
+from typing import List, Optional, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, Body, BackgroundTasks, status
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.models.invoice import Invoice
+from app.schemas.invoice import InvoiceResponse, InvoiceListResponse
+from app.services.azure_blob import blob_service
+from app.services.extractor import extractor_service
+from app.services.vector_service import vector_service
+
+router = APIRouter(
+    prefix="/api/v1/invoices",
+    tags=["Invoices"]
+)
+
+@router.post("/upload", response_model=InvoiceResponse, status_code=status.HTTP_201_CREATED)
+async def upload_invoice(
+    file: UploadFile = File(...),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+    db: Session = Depends(get_db)
+):
+    """
+    Accept PDF upload, archive file in Azure Blob Storage (Azurite),
+    create database record with status tracking, run metadata extraction,
+    and index vector embeddings asynchronously in Qdrant Vector DB.
+    """
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid format. Only PDF files (.pdf) are supported."
+        )
+
+    file_bytes = await file.read()
+
+    # Step 1: Upload raw binary stream to Azure Blob Storage / Local fallback
+    try:
+        blob_url = blob_service.upload_file(file_bytes, file.filename)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save file to Blob Storage: {str(e)}"
+        )
+
+    # Step 2: Register initial record in PostgreSQL database with status PROCESSING
+    db_invoice = Invoice(
+        filename=file.filename,
+        blob_url=blob_url,
+        status="PROCESSING"
+    )
+    db.add(db_invoice)
+    db.commit()
+    db.refresh(db_invoice)
+
+    # Step 3: Run Document Intelligence extraction pipeline
+    try:
+        extracted = extractor_service.extract_invoice_data(file_bytes, file.filename)
+        
+        db_invoice.vendor_name = extracted.get("vendor_name")
+        db_invoice.invoice_number = extracted.get("invoice_number")
+        
+        raw_date = extracted.get("invoice_date")
+        if isinstance(raw_date, str):
+            try:
+                db_invoice.invoice_date = datetime.strptime(raw_date, "%Y-%m-%d").date()
+            except Exception:
+                db_invoice.invoice_date = None
+        elif isinstance(raw_date, date):
+            db_invoice.invoice_date = raw_date
+        else:
+            db_invoice.invoice_date = None
+
+        db_invoice.total_amount = extracted.get("total_amount")
+        db_invoice.tax_amount = extracted.get("tax_amount")
+        db_invoice.currency = extracted.get("currency", "USD")
+        db_invoice.po_number = extracted.get("po_number")
+        db_invoice.raw_text = extracted.get("raw_text")
+        db_invoice.line_items_json = extracted.get("line_items")
+        db_invoice.status = "COMPLETED"
+    except Exception as ex:
+        db_invoice.status = "FAILED"
+
+    db.commit()
+    db.refresh(db_invoice)
+
+    # Step 4: Schedule asynchronous Qdrant vector indexing background task
+    if db_invoice.status == "COMPLETED" and db_invoice.raw_text:
+        payload = {
+            "invoice_id": db_invoice.id,
+            "filename": db_invoice.filename,
+            "vendor_name": db_invoice.vendor_name,
+            "total_amount": db_invoice.total_amount,
+            "invoice_date": str(db_invoice.invoice_date) if db_invoice.invoice_date else None
+        }
+        background_tasks.add_task(
+            vector_service.upsert_invoice_vector,
+            db_invoice.id,
+            db_invoice.raw_text,
+            payload
+        )
+
+    return db_invoice
+
+
+@router.get("", response_model=InvoiceListResponse)
+def list_invoices(
+    skip: int = Query(0, ge=0, description="Records to skip for pagination"),
+    limit: int = Query(20, ge=1, le=100, description="Max records per page"),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns paginated list of invoices stored in PostgreSQL database.
+    """
+    total = db.query(Invoice).count()
+    invoices = db.query(Invoice).order_by(Invoice.created_at.desc()).offset(skip).limit(limit).all()
+    
+    page = (skip // limit) + 1 if limit > 0 else 1
+
+    return InvoiceListResponse(
+        total=total,
+        page=page,
+        page_size=limit,
+        invoices=invoices
+    )
+
+
+@router.get("/{invoice_id}", response_model=InvoiceResponse)
+def get_invoice_by_id(
+    invoice_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Returns single invoice details by database ID.
+    """
+    invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Invoice with ID {invoice_id} not found."
+        )
+    return invoice
+
+
+@router.get("/{invoice_id}/download")
+def download_invoice_pdf(
+    invoice_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Download raw PDF document bytes from Azure Blob Storage or local fallback.
+    """
+    from fastapi import Response
+
+    invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Invoice with ID {invoice_id} not found."
+        )
+
+    try:
+        file_bytes = blob_service.download_file(invoice.filename)
+        return Response(
+            content=file_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"inline; filename={invoice.filename}"}
+        )
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"PDF file '{invoice.filename}' not found in storage."
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve file from storage: {str(e)}"
+        )
+
+
+@router.post("/search")
+def search_invoices(
+    query: str = Query(..., min_length=2, description="Natural language search query"),
+    limit: int = Query(10, ge=1, le=50, description="Max search results"),
+    score_threshold: float = Query(0.35, ge=0.0, le=1.0, description="Min Cosine similarity score"),
+    db: Session = Depends(get_db)
+):
+    """
+    Executes natural language vector similarity search using Qdrant Vector DB
+    and SentenceTransformers (all-MiniLM-L6-v2 384-d dense embeddings).
+    """
+    vector_hits = vector_service.search_similar_invoices(
+        query=query,
+        limit=limit,
+        score_threshold=score_threshold
+    )
+
+    if not vector_hits:
+        # Fallback to SQL ILIKE search if vector DB yields zero hits
+        invoices = db.query(Invoice).filter(
+            (Invoice.vendor_name.ilike(f"%{query}%")) |
+            (Invoice.filename.ilike(f"%{query}%")) |
+            (Invoice.invoice_number.ilike(f"%{query}%")) |
+            (Invoice.raw_text.ilike(f"%{query}%"))
+        ).limit(limit).all()
+
+        return {
+            "query": query,
+            "total_matches": len(invoices),
+            "search_mode": "sql_fallback",
+            "results": [
+                {
+                    "similarity_score": 1.0,
+                    "invoice": InvoiceResponse.model_validate(inv)
+                } for inv in invoices
+            ]
+        }
+
+    # Fetch matching PostgreSQL records in order of vector similarity score
+    results = []
+    for hit in vector_hits:
+        invoice_id = hit["invoice_id"]
+        inv = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+        if inv:
+            results.append({
+                "similarity_score": hit["score"],
+                "invoice": InvoiceResponse.model_validate(inv)
+            })
+
+    return {
+        "query": query,
+        "total_matches": len(results),
+        "search_mode": "qdrant_vector_similarity",
+        "results": results
+    }
+
+

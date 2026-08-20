@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Database Service
+  postgres:
+    image: postgres:16-alpine
+    container_name: invoice_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: invoicedb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d invoicedb" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Qdrant Vector Database Service
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: invoice_qdrant
+    restart: always
+    ports:
+      - "6333:6333" # HTTP REST API & Web Dashboard
+      - "6334:6334" # gRPC API
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:6333/healthz || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 3. Azurite Azure Blob Storage Emulator Service
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: invoice_azurite
+    restart: always
+    command: "azurite-blob --blobHost 0.0.0.0 --blobPort 10000"
+    ports:
+      - "10000:10000" # Blob storage service
+      - "10001:10001" # Queue storage service
+      - "10002:10002" # Table storage service
+    volumes:
+      - azurite_data:/data
+
+volumes:
+  postgres_data:
+    driver: local
+  qdrant_data:
+    driver: local
+  azurite_data:
+    driver: local
