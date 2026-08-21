@@ -185,8 +185,10 @@ def search_invoices(
     db: Session = Depends(get_db)
 ):
     """
-    Executes natural language vector similarity search using Qdrant Vector DB
-    and SentenceTransformers (all-MiniLM-L6-v2 384-d dense embeddings).
+    STRICT SEMANTIC VECTOR SEARCH:
+    Executes dense vector similarity search exclusively over Qdrant Vector DB
+    (384-dimensional embeddings generated via SentenceTransformers all-MiniLM-L6-v2).
+    PostgreSQL is strictly used to retrieve metadata details & blob storage URLs for matching vector IDs.
     """
     vector_hits = vector_service.search_similar_invoices(
         query=query,
@@ -195,27 +197,14 @@ def search_invoices(
     )
 
     if not vector_hits:
-        # Fallback to SQL ILIKE search if vector DB yields zero hits
-        invoices = db.query(Invoice).filter(
-            (Invoice.vendor_name.ilike(f"%{query}%")) |
-            (Invoice.filename.ilike(f"%{query}%")) |
-            (Invoice.invoice_number.ilike(f"%{query}%")) |
-            (Invoice.raw_text.ilike(f"%{query}%"))
-        ).limit(limit).all()
-
         return {
             "query": query,
-            "total_matches": len(invoices),
-            "search_mode": "sql_fallback",
-            "results": [
-                {
-                    "similarity_score": 1.0,
-                    "invoice": InvoiceResponse.model_validate(inv)
-                } for inv in invoices
-            ]
+            "total_matches": 0,
+            "search_mode": "strict_qdrant_semantic_vector_search",
+            "results": []
         }
 
-    # Fetch matching PostgreSQL records in order of vector similarity score
+    # Retrieve PostgreSQL metadata & blob storage path strictly for matching vector IDs
     results = []
     for hit in vector_hits:
         invoice_id = hit["invoice_id"]
@@ -229,8 +218,9 @@ def search_invoices(
     return {
         "query": query,
         "total_matches": len(results),
-        "search_mode": "qdrant_vector_similarity",
+        "search_mode": "strict_qdrant_semantic_vector_search",
         "results": results
     }
+
 
 
