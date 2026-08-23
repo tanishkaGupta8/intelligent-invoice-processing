@@ -11,10 +11,20 @@ export default function Navbar() {
         const res = await axios.get('http://localhost:8000/health', { timeout: 3000 });
         if (res.status === 200) {
           setSystemStatus({ online: true, text: 'System Operational' });
+          return;
         }
       } catch (err) {
-        setSystemStatus({ online: false, text: 'Backend Standby (Demo Preset Mode)' });
+        try {
+          const res2 = await axios.get('http://127.0.0.1:8000/health', { timeout: 3000 });
+          if (res2.status === 200) {
+            setSystemStatus({ online: true, text: 'System Operational' });
+            return;
+          }
+        } catch (e) {
+          // Backend server on port 8000 is not running
+        }
       }
+      setSystemStatus({ online: false, text: 'Backend Standby (Demo Preset Mode)' });
     };
 
     checkHealth();
