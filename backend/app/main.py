@@ -42,6 +42,7 @@ def read_root():
     }
 
 @app.get("/health")
+@app.get("/docs/health")
 def health_check(db: Session = Depends(get_db)):
     db_status = "healthy"
     try:
