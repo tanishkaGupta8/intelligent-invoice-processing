@@ -41,18 +41,22 @@ def read_root():
         "documentation": "/docs"
     }
 
+from sqlalchemy import text
+
 @app.get("/health")
 @app.get("/docs/health")
 def health_check(db: Session = Depends(get_db)):
     db_status = "healthy"
     try:
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
     except Exception:
         db_status = "unreachable (start docker-compose)"
 
     return {
         "status": "healthy",
-        "database": db_status,
-        "qdrant": f"http://{settings.QDRANT_HOST}:{settings.QDRANT_PORT}",
-        "azurite": f"http://127.0.0.1:10000"
+        "services": {
+            "database": db_status,
+            "qdrant": f"http://{settings.QDRANT_HOST}:{settings.QDRANT_PORT}",
+            "azurite": f"http://127.0.0.1:10000"
+        }
     }

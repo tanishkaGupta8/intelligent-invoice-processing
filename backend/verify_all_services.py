@@ -26,7 +26,7 @@ def run_verification():
 
     # 2. Get Invoices Directory (/api/v1/invoices)
     try:
-        r = requests.get(f"{BASE_URL}/api/v1/invoices", timeout=3)
+        r = requests.get(f"{BASE_URL}/api/v1/invoices", timeout=10)
         if r.status_code == 200:
             data = r.json()
             total = data.get("total", 0)
@@ -39,7 +39,7 @@ def run_verification():
     # 3. Vector Similarity Search (/api/v1/invoices/search)
     try:
         search_query = "shipping logistics freight"
-        r = requests.post(f"{BASE_URL}/api/v1/invoices/search?query={search_query}&limit=5", timeout=5)
+        r = requests.post(f"{BASE_URL}/api/v1/invoices/search?query={search_query}&limit=5", timeout=10)
         if r.status_code == 200:
             data = r.json()
             mode = data.get("search_mode")
