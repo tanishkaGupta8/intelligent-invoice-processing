@@ -101,4 +101,20 @@ class VectorService:
             logger.warning(f"Qdrant vector search failed ({e}). Returning empty search results.")
             return []
 
+    def delete_invoice_vector(self, invoice_id: int) -> bool:
+        """
+        Deletes vector point by invoice ID from Qdrant collection.
+        """
+        try:
+            client = self._get_qdrant_client()
+            client.delete(
+                collection_name=self.collection_name,
+                points_selector=[invoice_id]
+            )
+            logger.info(f"Successfully deleted vector point #{invoice_id} from Qdrant.")
+            return True
+        except Exception as e:
+            logger.warning(f"Failed to delete vector point #{invoice_id} from Qdrant: {e}")
+            return False
+
 vector_service = VectorService()

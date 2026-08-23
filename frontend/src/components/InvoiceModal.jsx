@@ -10,11 +10,12 @@ import {
   CheckCircle2, 
   ExternalLink,
   Table,
-  Cpu
+  Cpu,
+  Trash2
 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 
-export default function InvoiceModal({ invoice, onClose }) {
+export default function InvoiceModal({ invoice, onClose, onDelete }) {
   if (!invoice) return null;
 
   return (
@@ -237,6 +238,32 @@ export default function InvoiceModal({ invoice, onClose }) {
           >
             <Download size={14} /> Download Original PDF
           </a>
+
+          {onDelete && (
+            <button
+              onClick={() => {
+                if (window.confirm(`Are you sure you want to delete invoice #${invoice.id}?`)) {
+                  onDelete(invoice.id);
+                  onClose();
+                }
+              }}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(244, 63, 94, 0.15)',
+                border: '1px solid rgba(244, 63, 94, 0.35)',
+                color: 'var(--accent-rose)',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              <Trash2 size={14} /> Delete
+            </button>
+          )}
 
           <button
             onClick={onClose}

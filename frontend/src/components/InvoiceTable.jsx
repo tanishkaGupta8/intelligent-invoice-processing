@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { FileText, Eye, Download, Calendar, DollarSign, ArrowUpDown, Sparkles } from 'lucide-react';
+import { FileText, Eye, Download, Calendar, DollarSign, ArrowUpDown, Sparkles, Trash2 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 
-export default function InvoiceTable({ invoices = [], loading = false, onViewInvoice }) {
+export default function InvoiceTable({ invoices = [], loading = false, onViewInvoice, onDeleteInvoice }) {
   const [sortField, setSortField] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
 
@@ -142,24 +142,46 @@ export default function InvoiceTable({ invoices = [], loading = false, onViewInv
                 <StatusBadge status={inv.status} />
               </td>
               <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                <button
-                  onClick={() => onViewInvoice && onViewInvoice(inv)}
-                  style={{
-                    padding: '0.35rem 0.75rem',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--bg-glass)',
-                    border: '1px solid var(--border-color)',
-                    color: 'var(--text-main)',
-                    cursor: 'pointer',
-                    fontSize: '0.8rem',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    transition: 'var(--transition-fast)'
-                  }}
-                >
-                  <Eye size={14} /> View
-                </button>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <button
+                    onClick={() => onViewInvoice && onViewInvoice(inv)}
+                    style={{
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-glass)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-main)',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      transition: 'var(--transition-fast)'
+                    }}
+                  >
+                    <Eye size={14} /> View
+                  </button>
+
+                  <button
+                    onClick={() => onDeleteInvoice && onDeleteInvoice(inv.id)}
+                    title="Delete Invoice"
+                    style={{
+                      padding: '0.35rem 0.5rem',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(244, 63, 94, 0.12)',
+                      border: '1px solid rgba(244, 63, 94, 0.3)',
+                      color: 'var(--accent-rose)',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'var(--transition-fast)'
+                    }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </td>
             </tr>
           ))}

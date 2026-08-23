@@ -59,4 +59,30 @@ class AzureBlobService:
                     return f.read()
             raise FileNotFoundError(f"File '{filename}' not found in blob storage or local disk.")
 
+    def delete_file(self, filename: str) -> bool:
+        """
+        Deletes binary file from Azurite blob container or local fallback disk.
+        """
+        deleted = False
+        try:
+            client = self._get_client()
+            blob_client = client.get_blob_client(container=self.container_name, blob=filename)
+            if blob_client.exists():
+                blob_client.delete_blob()
+                deleted = True
+                logger.info(f"Deleted '{filename}' from Azurite blob container.")
+        except Exception as e:
+            logger.warning(f"Azurite delete warning for '{filename}': {e}")
+
+        local_path = os.path.join(self.local_dir, filename)
+        if os.path.exists(local_path):
+            try:
+                os.remove(local_path)
+                deleted = True
+                logger.info(f"Deleted '{filename}' from local uploads directory.")
+            except Exception as ex:
+                logger.warning(f"Local file delete warning for '{filename}': {ex}")
+
+        return deleted
+
 blob_service = AzureBlobService()

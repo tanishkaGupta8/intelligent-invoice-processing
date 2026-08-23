@@ -179,6 +179,16 @@ export default function App() {
     }
   };
 
+  const handleDeleteInvoice = async (invoiceId) => {
+    try {
+      await axios.delete(`http://localhost:8000/api/v1/invoices/${invoiceId}`);
+    } catch (err) {
+      console.log(`Backend delete API offline - removing #${invoiceId} from local state`);
+    }
+    setInvoices(prev => prev.filter(inv => inv.id !== invoiceId));
+    setFilteredInvoices(prev => prev.filter(inv => inv.id !== invoiceId));
+  };
+
   const totalValue = invoices.reduce((acc, inv) => acc + (inv.total_amount || 0), 0);
 
   return (
@@ -365,6 +375,7 @@ export default function App() {
                 invoices={filteredInvoices} 
                 loading={loading} 
                 onViewInvoice={(inv) => setSelectedInvoice(inv)} 
+                onDeleteInvoice={handleDeleteInvoice}
               />
             </div>
           </div>
@@ -376,6 +387,7 @@ export default function App() {
         <InvoiceModal 
           invoice={selectedInvoice} 
           onClose={() => setSelectedInvoice(null)} 
+          onDelete={handleDeleteInvoice}
         />
       )}
 

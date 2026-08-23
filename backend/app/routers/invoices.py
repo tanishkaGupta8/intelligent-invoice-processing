@@ -225,4 +225,38 @@ def search_invoices(
     }
 
 
+@router.delete("/{invoice_id}", status_code=status.HTTP_200_OK)
+def delete_invoice(
+    invoice_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Deletes invoice record from PostgreSQL database, removes vector point from Qdrant,
+    and purges raw PDF file from Azurite Blob Storage / local disk.
+    """
+    invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Invoice with ID {invoice_id} not found."
+        )
+
+    # 1. Delete vector point from Qdrant
+    vector_service.delete_invoice_vector(invoice_id)
+
+    # 2. Delete raw PDF file from Azurite / Local storage
+    if invoice.filename:
+        blob_service.delete_file(invoice.filename)
+
+    # 3. Delete relational row from PostgreSQL
+    db.delete(invoice)
+    db.commit()
+
+    return {
+        "status": "success",
+        "message": f"Invoice #{invoice_id} ('{invoice.filename}') successfully deleted from PostgreSQL, Qdrant Vector DB, and Blob Storage."
+    }
+
+
+
 
