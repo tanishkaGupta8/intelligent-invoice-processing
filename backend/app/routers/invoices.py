@@ -210,9 +210,11 @@ def search_invoices(
         invoice_id = hit["invoice_id"]
         inv = db.query(Invoice).filter(Invoice.id == invoice_id).first()
         if inv:
+            inv_resp = InvoiceResponse.model_validate(inv)
+            inv_resp.download_url = f"http://localhost:8000/api/v1/invoices/{inv.id}/download"
             results.append({
                 "similarity_score": hit["score"],
-                "invoice": InvoiceResponse.model_validate(inv)
+                "invoice": inv_resp
             })
 
     return {

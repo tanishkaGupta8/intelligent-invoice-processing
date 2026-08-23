@@ -17,6 +17,7 @@ class InvoiceBase(BaseModel):
 class InvoiceResponse(InvoiceBase):
     id: int
     blob_url: Optional[str] = None
+    download_url: Optional[str] = None
     raw_text: Optional[str] = None
     line_items_json: Optional[Any] = None
     created_at: datetime
