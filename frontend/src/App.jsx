@@ -280,72 +280,7 @@ export default function App() {
           </div>
         </section>
 
-        {/* Financial KPI Summary Widgets */}
-        <section style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '1.25rem',
-          marginBottom: '2rem'
-        }}>
-          <div style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }} className="glass-card">
-            <div style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'rgba(99, 102, 241, 0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--primary-500)'
-            }}>
-              <FileText size={24} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Documents Processed</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff' }}>{invoices.length} Invoices</div>
-            </div>
-          </div>
-
-          <div style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }} className="glass-card">
-            <div style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'rgba(16, 185, 129, 0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--accent-emerald)'
-            }}>
-              <DollarSign size={24} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Extracted Value</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--accent-emerald)' }}>
-                ${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }} className="glass-card">
-            <div style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'rgba(6, 182, 212, 0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--accent-cyan)'
-            }}>
-              <TrendingUp size={24} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Vector Search Latency</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--accent-cyan)' }}>&lt; 42 ms</div>
-            </div>
-          </div>
-        </section>
+        {/* Dashboard Operations Grid */}
 
         {/* Dashboard Operations Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2.2fr', gap: '1.5rem', marginBottom: '2.5rem' }}>
