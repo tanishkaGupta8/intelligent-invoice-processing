@@ -7,7 +7,14 @@ logger = logging.getLogger(__name__)
 
 class AzureBlobService:
     def __init__(self):
-        self.connection_string = settings.AZURITE_CONNECTION_STRING
+        cloud_conn = getattr(settings, 'AZURE_STORAGE_CONNECTION_STRING', '').strip()
+        if cloud_conn and "your_azure" not in cloud_conn and "your-storage-account" not in cloud_conn:
+            self.connection_string = cloud_conn
+            logger.info("Configured for Live Azure Cloud Blob Storage.")
+        else:
+            self.connection_string = settings.AZURITE_CONNECTION_STRING
+            logger.info("Configured for Local Azurite Blob Storage Emulator.")
+
         self.container_name = settings.AZURE_CONTAINER_NAME
         self.local_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
         self._client = None

@@ -21,7 +21,8 @@ class Settings(BaseSettings):
     QDRANT_PORT: int = int(os.getenv("QDRANT_PORT", "6333"))
     QDRANT_COLLECTION: str = os.getenv("QDRANT_COLLECTION", "invoice_embeddings")
 
-    # Azurite Storage Settings
+    # Live Azure Cloud & Azurite Storage Settings
+    AZURE_STORAGE_CONNECTION_STRING: str = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "")
     AZURITE_CONNECTION_STRING: str = os.getenv(
         "AZURITE_CONNECTION_STRING",
         "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8nsOM05zxdE60ZlwqsCXVneDPLU68Z0U3l5C0o9FutFQqs4fV35jT4bF6x9_DevAccountKey;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;"
