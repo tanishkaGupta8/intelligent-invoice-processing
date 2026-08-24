@@ -116,7 +116,7 @@ export default function App() {
     setLoading(true);
     try {
       const response = await axios.get('http://localhost:8000/api/v1/invoices');
-      if (response.data.invoices && response.data.invoices.length > 0) {
+      if (response.data && Array.isArray(response.data.invoices)) {
         setInvoices(response.data.invoices);
         setFilteredInvoices(response.data.invoices);
       }

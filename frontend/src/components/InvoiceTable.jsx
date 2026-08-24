@@ -163,7 +163,11 @@ export default function InvoiceTable({ invoices = [], loading = false, onViewInv
                   </button>
 
                   <button
-                    onClick={() => onDeleteInvoice && onDeleteInvoice(inv.id)}
+                    onClick={() => {
+                      if (window.confirm(`Are you sure you want to delete invoice #${inv.id} (${inv.filename})? This will permanently purge it from PostgreSQL, Qdrant Vector DB, and Blob Storage.`)) {
+                        onDeleteInvoice && onDeleteInvoice(inv.id);
+                      }
+                    }}
                     title="Delete Invoice"
                     style={{
                       padding: '0.35rem 0.5rem',
