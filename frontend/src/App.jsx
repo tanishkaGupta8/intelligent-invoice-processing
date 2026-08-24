@@ -5,6 +5,7 @@ import UploadDropzone from './components/UploadDropzone';
 import SearchBar from './components/SearchBar';
 import InvoiceTable from './components/InvoiceTable';
 import InvoiceModal from './components/InvoiceModal';
+import AIChatbot from './components/AIChatbot';
 import { 
   Database, 
   Layers, 
@@ -325,6 +326,9 @@ export default function App() {
           onDelete={handleDeleteInvoice}
         />
       )}
+
+      {/* Floating AI Financial Assistant Chatbot */}
+      <AIChatbot onViewInvoice={(inv) => setSelectedInvoice(inv)} />
 
       {/* Footer */}
       <footer style={{
