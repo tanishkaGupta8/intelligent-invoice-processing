@@ -15,7 +15,14 @@ class DocumentExtractionService:
         If Azure AI Document Intelligence keys are configured, invokes prebuilt-invoice.
         Otherwise provides structured local parsing fallback for development.
         """
-        if self.endpoint and self.key:
+        is_valid_azure = (
+            self.endpoint and 
+            self.key and 
+            "your-doc-intel-resource" not in self.endpoint and 
+            "your_azure" not in self.key
+        )
+
+        if is_valid_azure:
             try:
                 from azure.ai.formrecognizer import DocumentAnalysisClient
                 from azure.core.credentials import AzureKeyCredential
@@ -51,8 +58,7 @@ class DocumentExtractionService:
                 return extracted_data
 
             except Exception as e:
-                logger.error(f"Azure AI Document Intelligence error: {e}")
-                raise e
+                logger.warning(f"Azure AI Document Intelligence notice ({e}). Falling back to PyPDF local OCR parser.")
 
         # Development Fallback Mode (PyPDF text parsing + Regex metadata extraction)
         logger.info(f"Processing '{filename}' using PyPDF local OCR fallback parser...")

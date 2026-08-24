@@ -78,6 +78,8 @@ async def upload_invoice(
         db_invoice.line_items_json = extracted.get("line_items")
         db_invoice.status = "COMPLETED"
     except Exception as ex:
+        import logging
+        logging.getLogger(__name__).error(f"Extraction exception for file '{file.filename}': {ex}")
         db_invoice.status = "FAILED"
 
     db.commit()
