@@ -28,11 +28,6 @@ services:
       - "6334:6334" # gRPC API
     volumes:
       - qdrant_data:/qdrant/storage
-    healthcheck:
-      test: [ "CMD-SHELL", "wget -q --spider http://localhost:6333/healthz || exit 1" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   # 3. Azurite Azure Blob Storage Emulator Service
   azurite:
