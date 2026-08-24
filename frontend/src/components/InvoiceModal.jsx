@@ -73,8 +73,7 @@ export default function InvoiceModal({ invoice, onClose, onDelete }) {
               <StatusBadge status={invoice.status} />
             </div>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Document ID: <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-cyan)' }}>#{invoice.id}</span> • 
-              Processed via Azure AI Document Intelligence & Qdrant Engine
+              Document ID: <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-cyan)' }}>#{invoice.id}</span>
             </p>
           </div>
 
@@ -98,7 +97,7 @@ export default function InvoiceModal({ invoice, onClose, onDelete }) {
           </button>
         </div>
 
-        {/* Invoice Key Extracted Metadata Grid */}
+        {/* Key Extracted Details Cards Grid */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
@@ -106,107 +105,80 @@ export default function InvoiceModal({ invoice, onClose, onDelete }) {
           marginBottom: '1.75rem'
         }}>
           <div style={{ padding: '1rem' }} className="glass-card">
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               <Building2 size={14} color="var(--accent-cyan)" /> Vendor Name
             </div>
-            <div style={{ fontSize: '1.05rem', fontWeight: 600, marginTop: '0.35rem', color: 'var(--text-main)' }}>
-              {invoice.vendor_name || 'Acme Logistics Corp'}
+            <div style={{ fontSize: '1rem', fontWeight: 600, color: '#fff' }}>
+              {invoice.vendor_name || 'Unextracted'}
             </div>
           </div>
 
           <div style={{ padding: '1rem' }} className="glass-card">
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               <FileText size={14} color="var(--accent-purple)" /> Invoice Number
             </div>
-            <div style={{ fontSize: '1.05rem', fontWeight: 600, marginTop: '0.35rem', fontFamily: 'var(--font-mono)', color: 'var(--accent-purple)' }}>
-              {invoice.invoice_number || 'INV-98421'}
+            <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--accent-purple)', fontFamily: 'var(--font-mono)' }}>
+              {invoice.invoice_number || 'N/A'}
             </div>
           </div>
 
           <div style={{ padding: '1rem' }} className="glass-card">
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               <Calendar size={14} color="var(--accent-amber)" /> Invoice Date
             </div>
-            <div style={{ fontSize: '1.05rem', fontWeight: 600, marginTop: '0.35rem', color: 'var(--text-main)' }}>
-              {invoice.invoice_date || '2026-08-01'}
+            <div style={{ fontSize: '1rem', fontWeight: 600, color: '#fff' }}>
+              {invoice.invoice_date || 'N/A'}
             </div>
           </div>
 
           <div style={{ padding: '1rem' }} className="glass-card">
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               <DollarSign size={14} color="var(--accent-emerald)" /> Total Amount
             </div>
-            <div style={{ fontSize: '1.15rem', fontWeight: 700, marginTop: '0.35rem', color: 'var(--accent-emerald)' }}>
-              {invoice.total_amount ? `${invoice.currency || '$'} ${invoice.total_amount.toLocaleString()}` : '$1,450.75'}
+            <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-emerald)' }}>
+              {invoice.currency || 'USD'} {invoice.total_amount ? invoice.total_amount.toLocaleString() : '0.00'}
             </div>
           </div>
         </div>
 
-        {/* Extracted Line Items Section */}
+        {/* Itemized Line Items Table */}
         <div style={{ marginBottom: '1.75rem' }}>
-          <h4 style={{ fontSize: '1rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#fff' }}>
             <Table size={16} color="var(--primary-500)" /> Extracted Line Items
           </h4>
-          <div style={{
-            overflowX: 'auto',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border-color)',
-            background: 'var(--bg-glass)'
-          }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+          <div style={{ overflowX: 'auto', background: 'var(--bg-glass)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textAlign: 'left' }}>
-                  <th style={{ padding: '0.6rem 0.85rem' }}>Description</th>
-                  <th style={{ padding: '0.6rem 0.85rem' }}>Qty</th>
-                  <th style={{ padding: '0.6rem 0.85rem' }}>Unit Price</th>
-                  <th style={{ padding: '0.6rem 0.85rem', textAlign: 'right' }}>Total</th>
+                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                  <th style={{ padding: '0.75rem 1rem' }}>Description</th>
+                  <th style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>Qty</th>
+                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Unit Price</th>
+                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Total</th>
                 </tr>
               </thead>
               <tbody>
-                {(invoice.line_items_json && Array.isArray(invoice.line_items_json) && invoice.line_items_json.length > 0 ? invoice.line_items_json : [
-                  { description: 'Freight & Express Shipping Services', quantity: 1, unit_price: 1200.00, total: 1200.00 },
-                  { description: 'Fuel & Handling Surcharge', quantity: 1, unit_price: 250.75, total: 250.75 }
-                ]).map((item, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '0.6rem 0.85rem' }}>{item.description}</td>
-                    <td style={{ padding: '0.6rem 0.85rem' }}>{item.quantity || 1}</td>
-                    <td style={{ padding: '0.6rem 0.85rem' }}>${(item.unit_price || 0).toLocaleString()}</td>
-                    <td style={{ padding: '0.6rem 0.85rem', textAlign: 'right', fontWeight: 600, color: 'var(--accent-emerald)' }}>
-                      ${(item.total || 0).toLocaleString()}
+                {invoice.line_items_json && Array.isArray(invoice.line_items_json) && invoice.line_items_json.length > 0 ? (
+                  invoice.line_items_json.map((item, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '0.75rem 1rem', fontWeight: 500 }}>{item.description}</td>
+                      <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>{item.quantity}</td>
+                      <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                        {invoice.currency || 'USD'} {item.unit_price ? item.unit_price.toLocaleString() : '0.00'}
+                      </td>
+                      <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, color: 'var(--accent-emerald)', fontFamily: 'var(--font-mono)' }}>
+                        {invoice.currency || 'USD'} {item.total ? item.total.toLocaleString() : '0.00'}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-dim)' }}>
+                      No detailed itemized line items extracted for this document.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        {/* Vector Embedding Payload & Storage Details */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '1rem',
-          marginBottom: '1.5rem'
-        }}>
-          <div style={{ padding: '1rem' }} className="glass-card">
-            <h5 style={{ fontSize: '0.85rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--accent-cyan)' }}>
-              <Layers size={14} /> Qdrant Vector Index
-            </h5>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-              Collection: <span style={{ fontFamily: 'var(--font-mono)', color: '#fff' }}>invoices_vector_index</span><br />
-              Embedding: <span style={{ fontFamily: 'var(--font-mono)', color: '#fff' }}>all-MiniLM-L6-v2 (384-d)</span><br />
-              Distance Metric: <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-emerald)' }}>Cosine Similarity</span>
-            </p>
-          </div>
-
-          <div style={{ padding: '1rem' }} className="glass-card">
-            <h5 style={{ fontSize: '0.85rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--accent-purple)' }}>
-              <Cpu size={14} /> Azurite Blob Archival
-            </h5>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-              Container: <span style={{ fontFamily: 'var(--font-mono)', color: '#fff' }}>invoices-raw</span><br />
-              Blob URL: <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-cyan)', wordBreak: 'break-all' }}>{invoice.blob_url || '/uploads/' + invoice.filename}</span>
-            </p>
           </div>
         </div>
 

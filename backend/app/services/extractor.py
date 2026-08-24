@@ -21,6 +21,19 @@ def _get_field_val(field: Any) -> Optional[Any]:
         return str(val.name)
     return str(val) if val is not None else None
 
+def _detect_currency(text: str) -> str:
+    if re.search(r'\b(INR|Rs\.?|₹)\b', text, re.IGNORECASE):
+        return "INR"
+    if re.search(r'\b(EUR|€)\b', text, re.IGNORECASE):
+        return "EUR"
+    if re.search(r'\b(GBP|£)\b', text, re.IGNORECASE):
+        return "GBP"
+    if re.search(r'\b(CAD)\b', text, re.IGNORECASE):
+        return "CAD"
+    if re.search(r'\b(AUD)\b', text, re.IGNORECASE):
+        return "AUD"
+    return "USD"
+
 class DocumentExtractionService:
     def __init__(self):
         self.endpoint = getattr(settings, 'AZURE_DOC_INTEL_ENDPOINT', '')
@@ -28,9 +41,8 @@ class DocumentExtractionService:
 
     def extract_invoice_data(self, file_bytes: bytes, filename: str) -> Dict[str, Any]:
         """
-        Extracts structured metadata from invoice PDF bytes.
-        If Azure AI Document Intelligence keys are configured, invokes prebuilt-invoice.
-        Otherwise provides structured local parsing fallback for development.
+        Extracts structured metadata & line items from invoice PDF bytes.
+        Supports dynamic currency detection (INR, USD, EUR, etc.) and layout table parsing.
         """
         is_valid_azure = (
             self.endpoint and 
@@ -63,6 +75,10 @@ class DocumentExtractionService:
                     "line_items": []
                 }
 
+                if result.content:
+                    extracted_data["raw_text"] = result.content
+                    extracted_data["currency"] = _detect_currency(result.content)
+
                 for invoice in result.documents:
                     fields = invoice.fields
                     extracted_data["vendor_name"] = _get_field_val(fields.get("VendorName"))
@@ -83,9 +99,6 @@ class DocumentExtractionService:
                                 "total": _get_field_val(item_fields.get("Amount")) or 0.0
                             })
 
-                if result.content:
-                    extracted_data["raw_text"] = result.content
-
                 if extracted_data["vendor_name"] or extracted_data["total_amount"]:
                     logger.info(f"Successfully extracted document metadata via Azure AI Document Intelligence for '{filename}'.")
                     return extracted_data
@@ -93,7 +106,7 @@ class DocumentExtractionService:
             except Exception as e:
                 logger.warning(f"Azure AI Document Intelligence notice ({e}). Falling back to PyPDF local OCR parser.")
 
-        # Development Fallback Mode (PyPDF text stream parsing + Regex metadata extraction)
+        # Development Fallback Mode (PyPDF text stream parsing + Regex layout extraction)
         logger.info(f"Processing '{filename}' using PyPDF local OCR fallback parser...")
         raw_text = ""
         try:
@@ -110,12 +123,14 @@ class DocumentExtractionService:
         if not raw_text.strip():
             raw_text = f"Invoice document parsed from {filename}."
 
+        detected_currency = _detect_currency(raw_text)
+
         # Regex pattern extraction
         vendor_match = re.search(r'(?:Seller|Vendor|From|Company|Billed By):\s*\n?\s*([A-Za-z0-9\s&,.-]+)', raw_text, re.IGNORECASE)
         inv_no_match = re.search(r'(?:Invoice\s*(?:no|number|#)?|INV-?|Bill\s*#?):\s*([A-Za-z0-9-]+)', raw_text, re.IGNORECASE)
         date_match = re.search(r'(?:Date\s*(?:of issue)?|Invoice Date):\s*\n?\s*([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}|[A-Za-z]+\s+[0-9]{1,2},\s+[0-9]{4})', raw_text, re.IGNORECASE)
         
-        # Monetary amounts
+        # Monetary amounts extraction
         amounts = re.findall(r'(?:[0-9]{1,3}(?:,[0-9]{3})+\.[0-9]{2}|[0-9]{3,6}\.[0-9]{2})', raw_text)
         float_amounts = []
         for amt in amounts:
@@ -145,17 +160,35 @@ class DocumentExtractionService:
         else:
             invoice_date = "2026-08-01"
 
-        # Line items extraction from text lines
+        # Table block line items parser
         line_items = []
         lines = [line.strip() for line in raw_text.split('\n') if line.strip()]
-        for line in lines:
-            if re.search(r'^\d+\.', line) or re.search(r'(?:pcs|units|hrs|service)', line, re.IGNORECASE):
-                line_items.append({
-                    "description": line[:60],
-                    "quantity": 1,
-                    "unit_price": round(total_amount * 0.8, 2),
-                    "total": round(total_amount * 0.8, 2)
-                })
+        i = 0
+        while i < len(lines):
+            if re.match(r'^\d+\.$', lines[i]):
+                desc = lines[i+1] if i+1 < len(lines) else ''
+                qty_str = lines[i+2] if i+2 < len(lines) else '1'
+                um_str = lines[i+3] if i+3 < len(lines) else ''
+                price_str = lines[i+4] if i+4 < len(lines) else '0'
+                net_str = lines[i+5] if i+5 < len(lines) else '0'
+                vat_str = lines[i+6] if i+6 < len(lines) else '0%'
+                gross_str = lines[i+7] if i+7 < len(lines) else '0'
+                
+                try:
+                    qty = float(qty_str.replace(',', ''))
+                    price = float(price_str.replace(',', ''))
+                    gross = float(gross_str.replace(',', ''))
+                    line_items.append({
+                        "description": desc,
+                        "quantity": qty,
+                        "unit_price": price,
+                        "total": gross
+                    })
+                    i += 8
+                    continue
+                except Exception:
+                    pass
+            i += 1
 
         if not line_items:
             line_items = [
@@ -169,10 +202,10 @@ class DocumentExtractionService:
             "invoice_date": invoice_date,
             "total_amount": total_amount,
             "tax_amount": round(total_amount * 0.10, 2),
-            "currency": "USD",
+            "currency": detected_currency,
             "po_number": f"PO-{abs(hash(filename)) % 10000}",
             "raw_text": raw_text.strip(),
-            "line_items": line_items[:5]
+            "line_items": line_items[:10]
         }
 
 extractor_service = DocumentExtractionService()

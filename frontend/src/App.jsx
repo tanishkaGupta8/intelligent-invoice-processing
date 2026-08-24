@@ -234,54 +234,7 @@ export default function App() {
           <p style={{ maxWidth: '780px', margin: '0 auto', color: 'var(--text-muted)', fontSize: '0.98rem', lineHeight: '1.6' }}>
             Automated PDF OCR, Azure AI layout extraction, 384-dimensional vector embedding index via Qdrant, and local Azure Blob Storage archival.
           </p>
-
-          {/* Infrastructure Live Status Monitors */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-            gap: '1rem',
-            marginTop: '2rem',
-            textAlign: 'left'
-          }}>
-            <div style={{ padding: '1rem' }} className="glass-card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                <Server size={16} color="var(--primary-500)" /> FastAPI REST API
-              </div>
-              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--accent-emerald)', marginTop: '0.35rem' }}>
-                Online (Port 8000)
-              </div>
-            </div>
-
-            <div style={{ padding: '1rem' }} className="glass-card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                <Database size={16} color="var(--accent-purple)" /> PostgreSQL DB
-              </div>
-              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--accent-emerald)', marginTop: '0.35rem' }}>
-                Connected (Port 5432)
-              </div>
-            </div>
-
-            <div style={{ padding: '1rem' }} className="glass-card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                <Layers size={16} color="var(--accent-cyan)" /> Qdrant Vector Engine
-              </div>
-              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--accent-cyan)', marginTop: '0.35rem' }}>
-                Indexed (384-d Vectors)
-              </div>
-            </div>
-
-            <div style={{ padding: '1rem' }} className="glass-card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                <Activity size={16} color="var(--accent-amber)" /> Azurite Blob Storage
-              </div>
-              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--accent-emerald)', marginTop: '0.35rem' }}>
-                Container Ready
-              </div>
-            </div>
-          </div>
         </section>
-
-        {/* Dashboard Operations Grid */}
 
         {/* Dashboard Operations Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2.2fr', gap: '1.5rem', marginBottom: '2.5rem' }}>
@@ -291,14 +244,8 @@ export default function App() {
             <UploadDropzone onUploadSuccess={handleUploadSuccess} />
           </div>
 
-          {/* Search & Invoices Directory */}
-          <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }} className="glass-card">
-            <SearchBar 
-              searchQuery={searchQuery} 
-              setSearchQuery={setSearchQuery} 
-              onSearch={handleSearch} 
-            />
-
+          {/* Invoices Directory */}
+          <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }} className="glass-card">
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <h3 style={{ fontSize: '1.1rem' }}>Processed Invoices Directory</h3>
