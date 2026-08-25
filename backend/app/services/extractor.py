@@ -32,7 +32,7 @@ def _detect_currency(text: str) -> str:
         return "CAD"
     if re.search(r'\b(AUD)\b', text, re.IGNORECASE):
         return "AUD"
-    return "USD"
+    return "INR"
 
 class DocumentExtractionService:
     def __init__(self):
@@ -41,8 +41,8 @@ class DocumentExtractionService:
 
     def extract_invoice_data(self, file_bytes: bytes, filename: str) -> Dict[str, Any]:
         """
-        Extracts structured metadata & line items from invoice PDF bytes.
-        Supports dynamic currency detection (INR, USD, EUR, etc.) and layout table parsing.
+        Extracts structured metadata & itemized line items from invoice PDF bytes.
+        Supports dynamic currency detection (INR, USD, EUR, etc.) and smart multi-line table block parsing.
         """
         is_valid_azure = (
             self.endpoint and 
@@ -69,7 +69,7 @@ class DocumentExtractionService:
                     "invoice_date": None,
                     "total_amount": None,
                     "tax_amount": None,
-                    "currency": "USD",
+                    "currency": "INR",
                     "po_number": None,
                     "raw_text": "",
                     "line_items": []
@@ -106,7 +106,7 @@ class DocumentExtractionService:
             except Exception as e:
                 logger.warning(f"Azure AI Document Intelligence notice ({e}). Falling back to PyPDF local OCR parser.")
 
-        # Development Fallback Mode (PyPDF text stream parsing + Regex layout extraction)
+        # Development Fallback Mode (PyPDF text stream parsing + Smart multi-line layout extraction)
         logger.info(f"Processing '{filename}' using PyPDF local OCR fallback parser...")
         raw_text = ""
         try:
@@ -160,35 +160,50 @@ class DocumentExtractionService:
         else:
             invoice_date = "2026-08-01"
 
-        # Table block line items parser
+        # Smart Multi-Line Dynamic Item Block Parser
         line_items = []
         lines = [line.strip() for line in raw_text.split('\n') if line.strip()]
-        i = 0
-        while i < len(lines):
-            if re.match(r'^\d+\.$', lines[i]):
-                desc = lines[i+1] if i+1 < len(lines) else ''
-                qty_str = lines[i+2] if i+2 < len(lines) else '1'
-                um_str = lines[i+3] if i+3 < len(lines) else ''
-                price_str = lines[i+4] if i+4 < len(lines) else '0'
-                net_str = lines[i+5] if i+5 < len(lines) else '0'
-                vat_str = lines[i+6] if i+6 < len(lines) else '0%'
-                gross_str = lines[i+7] if i+7 < len(lines) else '0'
-                
+        
+        item_indices = []
+        for idx, l in enumerate(lines):
+            if re.match(r'^\d+\.$', l) or l == 'SUMMARY':
+                item_indices.append(idx)
+
+        for k in range(len(item_indices) - 1):
+            start = item_indices[k]
+            end = item_indices[k+1]
+            block = lines[start+1:end]
+
+            qty_idx = -1
+            for b_i, b_line in enumerate(block):
+                if re.match(r'^\s*\d+(?:\.\d+)?\s*$', b_line):
+                    qty_idx = b_i
+                    break
+
+            if qty_idx != -1:
+                desc = ' '.join(block[:qty_idx]).strip()
                 try:
-                    qty = float(qty_str.replace(',', ''))
-                    price = float(price_str.replace(',', ''))
-                    gross = float(gross_str.replace(',', ''))
-                    line_items.append({
-                        "description": desc,
-                        "quantity": qty,
-                        "unit_price": price,
-                        "total": gross
-                    })
-                    i += 8
-                    continue
-                except Exception:
-                    pass
-            i += 1
+                    qty = float(block[qty_idx].replace(',', ''))
+                except ValueError:
+                    qty = 1.0
+
+                nums = []
+                for b_line in block[qty_idx+1:]:
+                    clean = b_line.replace(',', '').replace('%', '').strip()
+                    try:
+                        nums.append(float(clean))
+                    except ValueError:
+                        pass
+
+                price = nums[0] if len(nums) > 0 else 0.0
+                total = nums[-1] if len(nums) > 1 else price * qty
+
+                line_items.append({
+                    "description": desc,
+                    "quantity": qty,
+                    "unit_price": price,
+                    "total": total
+                })
 
         if not line_items:
             line_items = [
@@ -205,7 +220,7 @@ class DocumentExtractionService:
             "currency": detected_currency,
             "po_number": f"PO-{abs(hash(filename)) % 10000}",
             "raw_text": raw_text.strip(),
-            "line_items": line_items[:10]
+            "line_items": line_items
         }
 
 extractor_service = DocumentExtractionService()
