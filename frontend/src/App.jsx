@@ -277,16 +277,6 @@ export default function App() {
       {/* Floating AI Financial Assistant Chatbot */}
       <AIChatbot onViewInvoice={(inv) => setSelectedInvoice(inv)} />
 
-      {/* Footer */}
-      <footer style={{
-        borderTop: '1px solid var(--border-color)',
-        padding: '1.5rem',
-        textAlign: 'center',
-        color: 'var(--text-muted)',
-        fontSize: '0.85rem'
-      }}>
-        Intelligent Invoice Processing Engine • GenAI & Vector Search Architecture • Ernst & Young (EY) Internship Project
-      </footer>
     </div>
   );
 }

@@ -136,7 +136,7 @@ export default function InvoiceTable({ invoices = [], loading = false, onViewInv
                 {inv.invoice_date || <span style={{ color: 'var(--text-dim)' }}>N/A</span>}
               </td>
               <td style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>
-                {inv.total_amount ? `${inv.currency || '$'} ${inv.total_amount.toLocaleString()}` : <span style={{ color: 'var(--text-dim)' }}>$0.00</span>}
+                {inv.total_amount ? `${inv.currency || 'INR'} ${inv.total_amount.toLocaleString()}` : <span style={{ color: 'var(--text-dim)' }}>0.00</span>}
               </td>
               <td style={{ padding: '0.85rem 1rem' }}>
                 <StatusBadge status={inv.status} />
